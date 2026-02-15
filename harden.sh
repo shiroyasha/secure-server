@@ -63,7 +63,7 @@ echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf
 ufw allow ssh
 ufw allow http
 ufw allow https
-ufw enable
+ufw --force enable
 
 # ---------------------------------------------------------
 # Step 5: Secure SSH Configuration
