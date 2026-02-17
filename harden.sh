@@ -35,8 +35,7 @@ sed -i "s/#\$nrconf{kernelhints} = -1;/\$nrconf{kernelhints} = -1;/g" /etc/needr
 # Step 2: Install Docker and Docker Compose
 # ---------------------------------------------------------
 
-# Update package list and install prerequisites
-apt update -y
+# Install prerequisites
 apt install -y ca-certificates curl gnupg
 
 # Add Docker's official GPG key and set up repository
