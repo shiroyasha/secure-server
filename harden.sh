@@ -23,13 +23,13 @@ fi
 # Step 1: Update and upgrade system packages
 # ---------------------------------------------------------
 
-apt update -y
-apt upgrade -y
-apt install -y vim curl htop jq
-
 # Configure 'needrestart' for auto-restart of services after upgrades
 sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
 sed -i "s/#\$nrconf{kernelhints} = -1;/\$nrconf{kernelhints} = -1;/g" /etc/needrestart/needrestart.conf
+
+apt update -y
+apt upgrade -y
+apt install -y vim curl htop jq
 
 # ---------------------------------------------------------
 # Step 2: Install Docker and Docker Compose
