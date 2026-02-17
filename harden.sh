@@ -37,7 +37,7 @@ sed -i "s/#\$nrconf{kernelhints} = -1;/\$nrconf{kernelhints} = -1;/g" /etc/needr
 
 # Update package list and install prerequisites
 apt update -y
-apt install -y ca-certificates curl gnupg
+apt install -y ca-certificates gnupg
 
 # Add Docker's official GPG key and set up repository
 install -m 0755 -d /etc/apt/keyrings
