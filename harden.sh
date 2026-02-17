@@ -3,20 +3,23 @@
 #
 # Applies common security measures for Ubuntu servers.
 #
-# Usage: GITHUB_USERNAME=your_username ./harden.sh
+# Usage: ./harden.sh
+#    or: GITHUB_USERNAME=your_username ./harden.sh
 #
-# Requires GITHUB_USERNAME environment variable. Fetches that GitHub user's SSH
-# public keys and adds them to the app user's authorized_keys. Afterwards,
-# you'll only be able to SSH into the server as 'app', e.g. app@1.2.3.4
+# Prompts for your GitHub username if not provided via env var. Fetches that
+# GitHub user's SSH public keys and adds them to the app user's authorized_keys.
+# Afterwards, you'll only be able to SSH into the server as 'app', e.g.
+# app@1.2.3.4
 #
 
 set -e
 
 if [ -z "${GITHUB_USERNAME}" ]; then
-    echo "Error: GITHUB_USERNAME environment variable is required."
-    echo "Usage: GITHUB_USERNAME=your_username $0"
-    echo "Example: GITHUB_USERNAME=octocat $0"
-    exit 1
+    read -rp "Enter your GitHub username: " GITHUB_USERNAME
+    if [ -z "${GITHUB_USERNAME}" ]; then
+        echo "Error: GitHub username is required."
+        exit 1
+    fi
 fi
 
 # ---------------------------------------------------------
