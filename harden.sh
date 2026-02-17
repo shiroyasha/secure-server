@@ -19,6 +19,9 @@ if [ -z "${GITHUB_USERNAME}" ]; then
     exit 1
 fi
 
+read -p "SSH port [20202]: " SSH_PORT
+SSH_PORT=${SSH_PORT:-20202}
+
 # ---------------------------------------------------------
 # Step 1: Update and upgrade system packages
 # ---------------------------------------------------------
@@ -60,7 +63,7 @@ echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf
 # Step 4: Configure UFW Firewall
 # ---------------------------------------------------------
 
-ufw allow ssh
+ufw allow "$SSH_PORT"/tcp
 ufw allow http
 ufw allow https
 ufw --force enable
@@ -73,6 +76,7 @@ ufw --force enable
 # 2/ disable password-based login
 # 3/ and enforce other security settings
 
+sed -i -e '/^\(#\|\)Port /s/^.*$/Port '"$SSH_PORT"'/' /etc/ssh/sshd_config
 sed -i -e '/^\(#\|\)PasswordAuthentication/s/^.*$/PasswordAuthentication no/' /etc/ssh/sshd_config
 sed -i -e '/^\(#\|\)PubkeyAuthentication/s/^.*$/PubkeyAuthentication yes/' /etc/ssh/sshd_config
 sed -i -e '/^\(#\|\)PermitEmptyPasswords/s/^.*$/PermitEmptyPasswords no/' /etc/ssh/sshd_config
@@ -125,7 +129,7 @@ apt install -y fail2ban
 cat <<EOF > /etc/fail2ban/jail.local
 [sshd]
 enabled = true
-port = ssh
+port = $SSH_PORT
 filter = sshd
 maxretry = 5
 findtime = 600
