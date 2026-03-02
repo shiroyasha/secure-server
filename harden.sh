@@ -3,19 +3,28 @@
 #
 # Applies common security measures for Ubuntu servers.
 #
-# Usage: GITHUB_USERNAME=your_username ./harden.sh
+# Usage:
+#   GITHUB_USERNAME=your_username ./harden.sh
+#   SSH_PUBLIC_KEYS="ssh-ed25519 AAAAC3Nza... you@host" ./harden.sh
+#   GITHUB_USERNAME=your_username SSH_PUBLIC_KEYS="ssh-ed25519 AAAAC3Nza... you@host" ./harden.sh
+# Optional:
+# - NO_REBOOT=1 (skip final reboot)
 #
-# Requires GITHUB_USERNAME environment variable. Fetches that GitHub user's SSH
-# public keys and adds them to the app user's authorized_keys. Afterwards,
-# you'll only be able to SSH into the server as 'app', e.g. app@1.2.3.4
+# Requires at least one of:
+# - GITHUB_USERNAME (fetches SSH public keys from GitHub)
+# - SSH_PUBLIC_KEYS (one or more newline-separated SSH public keys)
+# Then adds keys to the app user's authorized_keys. Afterwards, you'll only be
+# able to SSH into the server as 'app', e.g. app@1.2.3.4
 #
 
 set -e
 
-if [ -z "${GITHUB_USERNAME}" ]; then
-    echo "Error: GITHUB_USERNAME environment variable is required."
-    echo "Usage: GITHUB_USERNAME=your_username $0"
-    echo "Example: GITHUB_USERNAME=octocat $0"
+if [ -z "${GITHUB_USERNAME}" ] && [ -z "${SSH_PUBLIC_KEYS}" ]; then
+    echo "Error: You must set GITHUB_USERNAME and/or SSH_PUBLIC_KEYS."
+    echo "Usage:"
+    echo "  GITHUB_USERNAME=your_username $0"
+    echo "  SSH_PUBLIC_KEYS=\"ssh-ed25519 AAAAC3Nza... you@host\" $0"
+    echo "  GITHUB_USERNAME=your_username SSH_PUBLIC_KEYS=\"ssh-ed25519 AAAAC3Nza... you@host\" $0"
     exit 1
 fi
 
@@ -97,12 +106,36 @@ echo "app ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 sudo -H -u app bash -c 'mkdir -p ~/.ssh'
 sudo -H -u app bash -c 'chmod 700 ~/.ssh'
 
-echo "Fetching SSH keys from GitHub for user: $GITHUB_USERNAME"
+echo "Collecting SSH public keys for app user's authorized_keys"
 KEYS_FILE=$(mktemp)
 trap 'rm -f "$KEYS_FILE"' EXIT
-curl -sf "https://api.github.com/users/${GITHUB_USERNAME}/keys" | jq -r '.[].key' | grep -v '^$' > "$KEYS_FILE"
+touch "$KEYS_FILE"
+
+if [ -n "${GITHUB_USERNAME}" ]; then
+    echo "Fetching SSH keys from GitHub for user: $GITHUB_USERNAME"
+    curl -sf "https://api.github.com/users/${GITHUB_USERNAME}/keys" | jq -r '.[].key' >> "$KEYS_FILE"
+fi
+
+if [ -n "${SSH_PUBLIC_KEYS}" ]; then
+    echo "Adding SSH keys from SSH_PUBLIC_KEYS"
+    printf '%s\n' "$SSH_PUBLIC_KEYS" >> "$KEYS_FILE"
+fi
+
+# Normalize and deduplicate key entries
+sed -i '/^[[:space:]]*$/d' "$KEYS_FILE"
+sort -u -o "$KEYS_FILE" "$KEYS_FILE"
+
+# Validate each key format to avoid writing malformed entries
+while IFS= read -r key; do
+    if ! printf '%s' "$key" | grep -Eq '^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp(256|384|521)|sk-ecdsa-sha2-nistp256@openssh\.com|sk-ssh-ed25519@openssh\.com) [A-Za-z0-9+/=]+([[:space:]].*)?$'; then
+        echo "Error: Invalid SSH public key format detected:"
+        echo "$key"
+        exit 1
+    fi
+done < "$KEYS_FILE"
+
 if [ ! -s "$KEYS_FILE" ]; then
-    echo "Error: No SSH keys found for GitHub user '$GITHUB_USERNAME'. Check the username and try again."
+    echo "Error: No SSH public keys found from the provided inputs."
     exit 1
 fi
 
@@ -156,4 +189,8 @@ systemctl reload ssh
 # ---------------------------------------------------------
 
 echo "Rebooting so changes can take effect"
-reboot
+if [ "${NO_REBOOT}" = "1" ] || [ "${NO_REBOOT}" = "true" ] || [ "${NO_REBOOT}" = "yes" ]; then
+    echo "NO_REBOOT is set; skipping reboot."
+else
+    reboot
+fi

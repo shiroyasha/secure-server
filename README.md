@@ -6,7 +6,7 @@ Harden an Ubuntu server.
 - 🔒 Set up a non-root `app` user with sudo privileges.
 - 🔒 Install and configure UFW firewall.
 - 🔒 Install and configure fail2ban to protect against brute-force attacks.
-- 🔒 Set up SSH key authentication using your GitHub SSH keys.
+- 🔒 Set up SSH key authentication using GitHub keys, provided public keys, or both.
 
 ## Usage
 
@@ -16,19 +16,23 @@ Harden an Ubuntu server.
 ssh root@your-server-ip
 ```
 
-#### 2/ Set the `GITHUB_USERNAME` environment variable to your GitHub username.
+#### 2/ Run one command (choose one flow, or both).
 
 ```bash
-export GITHUB_USERNAME=your_username
+# Flow A: use GitHub username
+GITHUB_USERNAME=your_username curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | bash -s -e
+
+# Flow B: provide one or more public keys directly
+SSH_PUBLIC_KEYS='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... your@host' curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | bash -s -e
+
+# Flow C: combine both
+GITHUB_USERNAME=your_username SSH_PUBLIC_KEYS='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... your@host' curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | bash -s -e
+
+# Optional: disable reboot at the end of the script
+NO_REBOOT=1 GITHUB_USERNAME=your_username curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | bash -s -e
 ```
 
-#### 3/ Run the hardening script.
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | bash -s -e
-```
-
-#### 4/ Use your new `app` user to SSH into your server.
+#### 3/ Use your new `app` user to SSH into your server.
 
 ```bash
 ssh app@your-server-ip
