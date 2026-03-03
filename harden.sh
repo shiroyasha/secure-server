@@ -58,6 +58,29 @@ echo "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docke
 apt update -y
 apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
+# Configure host DNS via systemd-resolved (Cloudflare)
+mkdir -p /etc/systemd/resolved.conf.d
+cat <<EOF > /etc/systemd/resolved.conf.d/cloudflare-dns.conf
+[Resolve]
+DNS=1.1.1.1 1.0.0.1
+EOF
+systemctl restart systemd-resolved
+
+# Configure Docker daemon DNS to avoid resolver issues inside containers
+mkdir -p /etc/docker
+if [ -f /etc/docker/daemon.json ]; then
+    tmp_daemon_json=$(mktemp)
+    jq '. + {"dns":["1.1.1.1"]}' /etc/docker/daemon.json > "$tmp_daemon_json"
+    mv "$tmp_daemon_json" /etc/docker/daemon.json
+else
+    cat <<EOF > /etc/docker/daemon.json
+{
+  "dns": ["1.1.1.1"]
+}
+EOF
+fi
+systemctl restart docker
+
 # ---------------------------------------------------------
 # Step 3: Configure Virtual Memory Overcommit
 # ---------------------------------------------------------
@@ -68,6 +91,8 @@ echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf
 # ---------------------------------------------------------
 # Step 4: Configure UFW Firewall
 # ---------------------------------------------------------
+
+sed -i 's/^DEFAULT_FORWARD_POLICY=.*/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
 
 ufw allow ssh
 ufw allow http

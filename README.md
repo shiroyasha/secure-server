@@ -5,6 +5,7 @@ Harden an Ubuntu server.
 - 🔒 Disable root login and password authentication for SSH.
 - 🔒 Set up a non-root `app` user with sudo privileges.
 - 🔒 Install and configure UFW firewall.
+- 🔒 Configure UFW forwarding plus host and Docker DNS (Cloudflare).
 - 🔒 Install and configure fail2ban to protect against brute-force attacks.
 - 🔒 Set up SSH key authentication using GitHub keys, provided public keys, or both.
 
