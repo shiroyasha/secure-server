@@ -117,8 +117,9 @@ else
     sed -i -e '/^\(#\|\)ChallengeResponseAuthentication/s/^.*$/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
 fi
 
-echo 'Reloading ssh agent'
-systemctl reload ssh
+echo 'Applying SSH configuration'
+systemctl reload-or-restart ssh
+systemctl enable ssh
 
 # ---------------------------------------------------------
 # Step 6: Create Non-Root User with Sudo and Docker Access
@@ -207,7 +208,7 @@ echo "tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0" >> /etc/fstab
 
 echo "Disable root user login"
 sed -i -e '/^\(#\|\)PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
-systemctl reload ssh
+systemctl reload-or-restart ssh
 
 # ---------------------------------------------------------
 # Step 10: Reboot to Apply Changes
