@@ -21,16 +21,16 @@ ssh root@your-server-ip
 
 ```bash
 # Flow A: use GitHub username
-GITHUB_USERNAME=your_username curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | bash -s -e
+curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | GITHUB_USERNAME=your_username bash
 
 # Flow B: provide one or more public keys directly
-SSH_PUBLIC_KEYS='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... your@host' curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | bash -s -e
+curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | SSH_PUBLIC_KEYS='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... your@host' bash
 
 # Flow C: combine both
-GITHUB_USERNAME=your_username SSH_PUBLIC_KEYS='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... your@host' curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | bash -s -e
+curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | GITHUB_USERNAME=your_username SSH_PUBLIC_KEYS='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... your@host' bash
 
 # Optional: disable reboot at the end of the script
-NO_REBOOT=1 GITHUB_USERNAME=your_username curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | bash -s -e
+curl -fsSL https://raw.githubusercontent.com/shiroyasha/secure-server/main/harden.sh | NO_REBOOT=1 GITHUB_USERNAME=your_username bash
 ```
 
 #### 3/ Use your new `app` user to SSH into your server.
