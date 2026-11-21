@@ -52,6 +52,7 @@ apt install -y ca-certificates curl gnupg
 
 # Add Docker's official GPG key and set up repository
 install -m 0755 -d /etc/apt/keyrings
+rm -f /etc/apt/keyrings/docker.gpg
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
 echo "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
@@ -88,11 +89,17 @@ systemctl restart docker
 # ---------------------------------------------------------
 
 sysctl vm.overcommit_memory=1
-echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf
+grep -q '^vm.overcommit_memory = 1$' /etc/sysctl.conf || echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf
 
 # ---------------------------------------------------------
 # Step 4: Configure UFW Firewall
 # ---------------------------------------------------------
+
+apt install -y ufw
+if [ ! -f /etc/default/ufw ]; then
+    echo "Error: /etc/default/ufw is missing." >&2
+    exit 1
+fi
 
 sed -i 's/^DEFAULT_FORWARD_POLICY=.*/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
 
@@ -127,9 +134,11 @@ systemctl enable ssh
 # Step 6: Create Non-Root User with Sudo and Docker Access
 # ---------------------------------------------------------
 
-echo "Setup app user"
-adduser --disabled-password --gecos "" app
-echo "app ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+if ! id app >/dev/null 2>&1; then
+    echo "Setup app user"
+    adduser --disabled-password --gecos "" app
+fi
+grep -qF 'app ALL=(ALL) NOPASSWD: ALL' /etc/sudoers || echo "app ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 sudo -H -u app bash -c 'mkdir -p ~/.ssh'
 sudo -H -u app bash -c 'chmod 700 ~/.ssh'
@@ -201,8 +210,10 @@ systemctl restart fail2ban
 # Step 8: Secure Shared Memory
 # ---------------------------------------------------------
 
-echo "Secure shared memory"
-echo "tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0" >> /etc/fstab
+if [ ! -L /run/shm ]; then
+    echo "Secure shared memory"
+    grep -qF 'tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0' /etc/fstab || echo "tmpfs /run/shm tmpfs defaults,noexec,nosuid 0 0" >> /etc/fstab
+fi
 
 # ---------------------------------------------------------
 # Step 9: Disable Root User Login
