@@ -109,7 +109,29 @@ ufw allow https
 ufw --force enable
 
 # ---------------------------------------------------------
-# Step 5: Create Non-Root User with Sudo and Docker Access
+# Step 5: Secure SSH Configuration
+# ---------------------------------------------------------
+
+# 1/ Enable public key authentication
+# 2/ disable password-based login
+# 3/ and enforce other security settings
+
+sed -i -e '/^\(#\|\)PasswordAuthentication/s/^.*$/PasswordAuthentication no/' /etc/ssh/sshd_config
+sed -i -e '/^\(#\|\)PubkeyAuthentication/s/^.*$/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+sed -i -e '/^\(#\|\)PermitEmptyPasswords/s/^.*$/PermitEmptyPasswords no/' /etc/ssh/sshd_config
+
+if ! grep -q "^ChallengeResponseAuthentication" /etc/ssh/sshd_config; then
+    echo 'ChallengeResponseAuthentication no' >> /etc/ssh/sshd_config
+else
+    sed -i -e '/^\(#\|\)ChallengeResponseAuthentication/s/^.*$/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
+fi
+
+echo 'Applying SSH configuration'
+systemctl reload-or-restart ssh
+systemctl enable ssh
+
+# ---------------------------------------------------------
+# Step 6: Create Non-Root User with Sudo and Docker Access
 # ---------------------------------------------------------
 
 if ! id app >/dev/null 2>&1; then
@@ -164,7 +186,7 @@ chmod 600 /home/app/.ssh/authorized_keys
 usermod -aG docker app
 
 # ---------------------------------------------------------
-# Step 6: Install and Configure fail2ban
+# Step 7: Install and Configure fail2ban
 # ---------------------------------------------------------
 
 echo "Setup fail2ban"
@@ -185,7 +207,7 @@ EOF
 systemctl restart fail2ban
 
 # ---------------------------------------------------------
-# Step 7: Secure Shared Memory
+# Step 8: Secure Shared Memory
 # ---------------------------------------------------------
 
 if [ ! -L /run/shm ]; then
@@ -194,32 +216,15 @@ if [ ! -L /run/shm ]; then
 fi
 
 # ---------------------------------------------------------
-# Step 8: Secure SSH after the app user has keys
+# Step 9: Disable Root User Login
 # ---------------------------------------------------------
-
-# 1/ Enable public key authentication
-# 2/ disable password-based login
-# 3/ and enforce other security settings
-
-sed -i -e '/^\(#\|\)PasswordAuthentication/s/^.*$/PasswordAuthentication no/' /etc/ssh/sshd_config
-sed -i -e '/^\(#\|\)PubkeyAuthentication/s/^.*$/PubkeyAuthentication yes/' /etc/ssh/sshd_config
-sed -i -e '/^\(#\|\)PermitEmptyPasswords/s/^.*$/PermitEmptyPasswords no/' /etc/ssh/sshd_config
-
-if ! grep -q "^ChallengeResponseAuthentication" /etc/ssh/sshd_config; then
-    echo 'ChallengeResponseAuthentication no' >> /etc/ssh/sshd_config
-else
-    sed -i -e '/^\(#\|\)ChallengeResponseAuthentication/s/^.*$/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
-fi
 
 echo "Disable root user login"
 sed -i -e '/^\(#\|\)PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
-
-echo 'Applying SSH configuration'
 systemctl reload-or-restart ssh
-systemctl enable ssh
 
 # ---------------------------------------------------------
-# Step 9: Reboot to Apply Changes
+# Step 10: Reboot to Apply Changes
 # ---------------------------------------------------------
 
 echo "Rebooting so changes can take effect"
